@@ -608,11 +608,21 @@ double optimize_once(DGraph& graph, std::vector<int>& constraints_index,
 #pragma warning(push)
 #pragma warning(disable: 4819)
 #pragma warning(disable: 4521)
-#include <pcl/keypoints/impl/uniform_sampling.hpp>
+#include <pcl/filters/impl/uniform_sampling.hpp>
 #include <pcl/filters/impl/normal_space.hpp>
 #include <pcl/search/kdtree.h>
 #include <pcl/common/common.h>
 #pragma warning(pop)
+
+class IndexUniformSampler : public pcl::UniformSampling<pcl::PointXYZ> {
+public:
+	void get(std::vector<int> &output) {
+		output.resize(leaves_.size());
+		int cp = 0;
+		for (typename boost::unordered_map<size_t, Leaf>::const_iterator it = leaves_.begin(); it != leaves_.end(); ++it)
+			output[cp++] = it->second.idx;
+	}
+};
 
 //convert the trimesh to the point cloud data with positions and normals.
 static pcl::PointCloud<pcl::PointNormal>::Ptr
@@ -663,7 +673,7 @@ void mesh_sampling(const TriMesh& mesh, std::vector<int>& sample_index, double m
 	}
 	{
 		typedef pcl::PointXYZ PointType;
-		pcl::UniformSampling<PointType> uniform_sampler;
+		IndexUniformSampler uniform_sampler;
 		pcl::PointCloud<PointType>::Ptr tri_vertex(new pcl::PointCloud<PointType>);
 		{
 			tri_vertex->resize(src_pcd->points.size());
@@ -673,10 +683,15 @@ void mesh_sampling(const TriMesh& mesh, std::vector<int>& sample_index, double m
 				tri_vertex->points[i].z = src_pcd->points[i].z;
 			}
 		}
-		pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
+		//pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
 		uniform_sampler.setInputCloud(tri_vertex);
-		uniform_sampler.setSearchMethod(tree);
+		//uniform_sampler.setSearchMethod(tree);
 		uniform_sampler.setRadiusSearch(max_dist);
+
+		pcl::PointCloud<PointType>::Ptr model_keypoints(new pcl::PointCloud<PointType>());
+		uniform_sampler.filter(*model_keypoints);
+		uniform_sampler.get(uniform_sampling_indices);
+		/*
 		{
 			pcl::PointCloud<int> keypoints_src_idx;
 			uniform_sampler.compute(keypoints_src_idx);
@@ -684,6 +699,7 @@ void mesh_sampling(const TriMesh& mesh, std::vector<int>& sample_index, double m
 			uniform_sampling_indices.resize(keypoints_src_idx.size());
 			std::copy(keypoints_src_idx.begin(), keypoints_src_idx.end(), uniform_sampling_indices.begin());
 		}
+		*/
 	}
 
 	//merge the sampling result to output

@@ -1,8 +1,9 @@
+#define FREEGLUT_STATIC
 #include <sstream>
 #include <gl/freeglut.h>
 #include "TriMesh.h"
 using Eigen::Vector3d;
-
+extern "C" { FILE __iob_func[3] = { *stdin,*stdout,*stderr }; }
 static int splitLine(const std::string& refLine, std::vector<std::string> words)
 {
 	std::string line(refLine);
@@ -436,7 +437,7 @@ void Skeleton::render(float sphereSize /* = 0.05 */, float lineWidth /* = 3.0 */
 	{
 		glPushMatrix();
 		glTranslated(pos[i][0], pos[i][1], pos[i][2]);
-		glutSolidSphere(sphereSize, 20, 20);
+		//glutSolidSphere(sphereSize, 20, 20);
 		glPopMatrix();
 	}
 
